@@ -164,23 +164,50 @@ public class Main {
             }
         }
 
-        public void traverseRightToLeftTopToBot(IVisitor visitor) {
-            Stack<Integer> indexesStack = new Stack<>();
+        private void traversePreorder(int node, IVisitor visitor) {
+            List<Integer> children = getChildren(node);
 
-            indexesStack.add(1); // root
+            visitor.visit(underneath[node]);
 
-            while (!indexesStack.isEmpty()) {
-                int currentIndex = indexesStack.pop();
-                T currentVal = underneath[currentIndex];
-
-                if (currentVal == null) {
-                    continue;
-                }
-
-                visitor.visit(currentVal);
-
-                indexesStack.addAll(getChildren(currentIndex));
+            for (Integer child: children) {
+                traversePreorder(child, visitor);
             }
+        }
+
+        public void traversePreorder(IVisitor visitor) {
+            traversePreorder(1, visitor);
+        }
+
+        public void traverseInorder(int node, IVisitor visitor) {
+            List<Integer> children = getChildren(node);
+
+            for (int i = 0; i < children.size() / 2; i++) {
+                traverseInorder(children.get(i), visitor);
+            }
+
+            visitor.visit(underneath[node]);
+
+            for (int i = children.size() / 2; i < children.size(); i++) {
+                traverseInorder(children.get(i), visitor);
+            }
+        }
+
+        public void traverseInorder(IVisitor visitor) {
+            traverseInorder(1, visitor);
+        }
+
+        public void traversePostorder(int node, IVisitor visitor) {
+            List<Integer> children = getChildren(node);
+
+            for (Integer child: children) {
+                traversePreorder(child, visitor);
+            }
+
+            visitor.visit(underneath[node]);
+        }
+
+        public void traversePostorder(IVisitor visitor) {
+            traversePostorder(1, visitor);
         }
     }
 
@@ -194,12 +221,12 @@ public class Main {
             ka.add(tokens[i]);
         }
 
-        CalculatorVisitor calcVisitor = new CalculatorVisitor();
-
-        ka.traverseRightToLeftTopToBot(calcVisitor);
-
-        System.out.printf("Result: %s", calcVisitor.result());
-
+        System.out.println("\nPreorder:");
+        ka.traversePreorder(new PrintVisitor<>());
+        System.out.println("\nInorder:");
+        ka.traverseInorder(new PrintVisitor<>());
+        System.out.println("\nPostorder:");
+        ka.traversePostorder(new PrintVisitor<>());
         // PF_Ring
     }
 }
