@@ -65,6 +65,11 @@ public class Main {
         public int result() {
             return currentValue;
         }
+
+        public void clear() {
+            this.pendingOperation = null;
+            this.currentValue = null;
+        }
     }
 
     @SuppressWarnings({"unchecked"})
@@ -227,6 +232,19 @@ public class Main {
         ka.traverseInorder(new PrintVisitor<>());
         System.out.println("\nPostorder:");
         ka.traversePostorder(new PrintVisitor<>());
-        // PF_Ring
+
+        CalculatorVisitor calcVisitor = new CalculatorVisitor();
+
+        ka.traversePreorder(calcVisitor);
+        System.out.printf("\nResult(Preorder): %s", calcVisitor.result());
+        calcVisitor.clear();
+
+        ka.traverseInorder(calcVisitor);
+        System.out.printf("\nResult(Inorder): %s", calcVisitor.result());
+        calcVisitor.clear();
+
+        ka.traversePostorder(calcVisitor);
+        System.out.printf("\nResult(Postorder): %s", calcVisitor.result());
+        calcVisitor.clear();
     }
 }
