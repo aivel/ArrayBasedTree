@@ -1,4 +1,4 @@
-package com.binarytree;
+package com.qiwi360.avltree;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -8,17 +8,17 @@ import java.util.*;
 
 /**
  * Created by Max on 13.10.2015.
- * Binary Search Tree implementation
  */
-public class BinarySearchTree<T extends Comparable> {
-    public final class Node<T extends Comparable> implements Comparable<T> {
-        // Tree node
+public class AVLTree<T extends Comparable> {
+    private final class Node implements Comparable<T> {
         private T value;
-        private Node<T> left;
-        private Node<T> right;
+        private int height;
+        private Node left;
+        private Node right;
 
         public Node(T value) {
             this.value = value;
+            height = 1;
         }
 
         public T getValue() {
@@ -29,19 +29,19 @@ public class BinarySearchTree<T extends Comparable> {
             this.value = value;
         }
 
-        public Node<T> getLeft() {
+        public Node getLeft() {
             return left;
         }
 
-        public void setLeft(Node<T> left) {
+        public void setLeft(Node left) {
             this.left = left;
         }
 
-        public Node<T> getRight() {
+        public Node getRight() {
             return right;
         }
 
-        public void setRight(Node<T> right) {
+        public void setRight(Node right) {
             this.right = right;
         }
 
@@ -49,21 +49,23 @@ public class BinarySearchTree<T extends Comparable> {
         public int compareTo(T o) {
             return value.compareTo(o);
         }
+
+        public int getHeight() {
+            return height;
+        }
+
+        public void setHeight(int height) {
+            this.height = height;
+        }
     }
 
     public interface IVisitor<T> {
-        // Visitor interface for traversing the tree
         void visit(T value);
     }
 
-    private Node<T> root;
-    private int size; // size of a tree(number of nodes)
+    private Node root;
 
-    public BinarySearchTree() {
-        size = 0;
-    }
-
-    private Node<T> find(Node<T> node, T value) {
+    private Node find(Node node, T value) {
         if (node == null) {
             return null;
         }
@@ -74,54 +76,42 @@ public class BinarySearchTree<T extends Comparable> {
 
         if (value.compareTo(node.value) > 0) {
             return find(node.right, value);
-        } else {
-            return find(node.left, value);
-        }
-    }
-
-    public Node<T> find(T value) {
-        return find(root, value);
-    }
-
-    private boolean insert(Node<T> node, T value) {
-        if (node == null) {
-            return false;
-        }
-
-        if (value.compareTo(node.value) > 0) {
-            if (node.right == null) {
-                node.setRight(new Node<>(value));
-                size++;
-                return true;
-            }
-
-            return insert(node.right, value);
         }
 
         if (value.compareTo(node.value) < 0) {
-            if (node.left == null) {
-                node.setLeft(new Node<>(value));
-                size++;
-                return true;
-            }
-
-            return insert(node.left, value);
+            return find(node.left, value);
         }
 
-        return false;
+        return null;
     }
 
-    public boolean insert(T value) {
-        if (root == null) {
-            root = new Node<>(value);
-            size++;
-            return true;
+    public Node find(T value) {
+        return find(root, value);
+    }
+
+    private Node insert(Node p, T value) {
+        if (p == null) {
+            return new Node(value);
         }
 
-        return insert(root, value);
+        if (value.compareTo(p.value) < 0) {
+            p.setLeft(insert(p.left, value));
+            return balance(p);
+        }
+
+        if (value.compareTo(p.value) > 0) {
+            p.setRight(insert(p.right, value));
+            return balance(p);
+        }
+
+        return null;
     }
 
-    private Node<T> findParentNode(Node<T> node, T value) {
+    public void insert(T value) {
+        root = insert(root, value);
+    }
+
+    private Node findParentNode(Node node, T value) {
         if (root == null) {
             return null;
         }
@@ -149,7 +139,7 @@ public class BinarySearchTree<T extends Comparable> {
         return null;
     }
 
-    private Node<T> findMin(Node<T> node) {
+    private Node findMin(Node node) {
         if (node == null) {
             return null;
         }
@@ -161,7 +151,7 @@ public class BinarySearchTree<T extends Comparable> {
         return findMin(node.left);
     }
 
-    private Node<T> findMax(Node<T> node) {
+    private Node findMax(Node node) {
         if (node == null) {
             return null;
         }
@@ -173,21 +163,31 @@ public class BinarySearchTree<T extends Comparable> {
         return findMax(node.right);
     }
 
-    private boolean delete(Node<T> node, T value) {
+    private Node removeMin(Node p) {
+        if (p.left == null) {
+            return p.right;
+        }
+
+        p.setLeft(removeMin(p.left));
+
+        return balance(p);
+    }
+
+    private Node delete(Node node, T value) {
         if (node == null) {
-            return false;
+            return null;
         }
 
         if (value.compareTo(node.value) > 0) {
-            return delete(node.right, value);
+            return balance(delete(node.right, value));
         }
 
         if (value.compareTo(node.value) < 0) {
-            return delete(node.left, value);
+            return balance(delete(node.left, value));
         }
 
         if (value.equals(node.value)) {
-            Node<T> parent = findParentNode(root, value);
+            Node parent = findParentNode(root, value);
 
             // node has no children
 
@@ -196,27 +196,24 @@ public class BinarySearchTree<T extends Comparable> {
                     if (node == root) {
                         // trying to remove the root element
                         // root that has no children
-                        size = 0;
                         root = null;
-                        return true;
+                        return null;
                     }
 
-                    return false;
+                    return null;
                 }
 
                 if (parent.left != null && parent.left.equals(node)) {
                     parent.setLeft(null);
-                    size--;
-                    return true;
+                    return balance(parent);
                 }
 
                 if (parent.right != null && parent.right.equals(node)) {
                     parent.setRight(null);
-                    size--;
-                    return true;
+                    return balance(parent);
                 }
 
-                return false;
+                return null;
             }
 
             // Node has one child
@@ -226,27 +223,24 @@ public class BinarySearchTree<T extends Comparable> {
                 if (parent == null) {
                     if (node == root) {
                         root = node.right;
-                        size--;
 
-                        return true;
+                        return balance(root);
                     }
 
-                    return false;
+                    return null;
                 }
 
                 if (parent.left != null && parent.left.equals(node)) {
                     parent.setLeft(node.right);
-                    size--;
-                    return true;
+                    return balance(parent);
                 }
 
                 if (parent.right != null && parent.right.equals(node)) {
                     parent.setRight(node.right);
-                    size--;
-                    return true;
+                    return balance(parent);
                 }
 
-                return false;
+                return null;
             }
 
             if (node.left != null && node.right == null) {
@@ -254,77 +248,108 @@ public class BinarySearchTree<T extends Comparable> {
                 if (parent == null) {
                     if (node == root) {
                         root = node.left;
-                        size--;
 
-                        return true;
+                        return balance(root);
                     }
 
-                    return false;
+                    return null;
                 }
 
                 if (parent.left != null && parent.left.equals(node)) {
                     parent.setLeft(node.left);
-                    size--;
-                    return true;
+                    return balance(parent);
                 }
 
                 if (parent.right != null && parent.right.equals(node)) {
                     parent.setRight(node.left);
-                    size--;
-                    return true;
+                    return balance(parent);
                 }
 
-                return false;
+                return null;
             }
 
             // node has two children
 
             // take predecessor
-            Node<T> nodeToReplaceWith = findMax(node.left);
+            Node nodeToReplaceWith = findMax(node.left);
 
             if (nodeToReplaceWith == null) {
                 nodeToReplaceWith = findMin(node.right);
 
                 if (nodeToReplaceWith == null) {
-                    return false;
+                    return null;
                 }
             }
 
-            if (delete(nodeToReplaceWith.value)) {
-                size++; // fix size
-            }
+            delete(nodeToReplaceWith.value);
 
             node.setValue(nodeToReplaceWith.value);
 
-            size--;
-
-            return true;
+            return balance(node);
         }
 
-        return false;
+        return null;
     }
 
-    public boolean delete(T value) {
-        return delete(root, value);
+    public void delete(T value) {
+        root = balance(delete(root, value));
     }
 
-    public int size() {
-        return size;
+    private int balanceFactor(Node node) {
+        return (node.right != null ? node.right.height: 0) - (node.left != null ? node.left.height : 0);
     }
 
-    private int height(Node<T> node) {
-        if (node == null) {
-            return 0;
+    private void fixHeight(Node node) {
+        node.setHeight(Math.max(node.left != null ? node.left.height : 0,
+                node.right != null ? node.right.height : 0) + 1);
+    }
+
+    private Node rotateRight(Node p) {
+        Node q = p.left;
+
+        p.setLeft(q.right);
+        q.setRight(p);
+        fixHeight(p);
+        fixHeight(q);
+
+        return q;
+    }
+
+    private Node rotateLeft(Node q) {
+        Node p = q.right;
+
+        q.setRight(p.left);
+        p.setLeft(q);
+        fixHeight(q);
+        fixHeight(p);
+
+        return p;
+    }
+
+    private Node balance(Node p) {
+        fixHeight(p);
+        int pBalanceFactor = balanceFactor(p);
+
+        if (pBalanceFactor == 2) {
+            if (balanceFactor(p.right) < 0) {
+                p.setRight(rotateRight(p.right));
+            }
+
+            return rotateLeft(p);
         }
 
-        return Math.max(height(node.left), height(node.right)) + 1;
+        if (pBalanceFactor == -2) {
+            if (balanceFactor(p.left) > 0) {
+                p.setLeft(rotateLeft(p.left));
+            }
+
+            return rotateRight(p);
+        }
+
+        return p;
     }
 
-    public int height() {
-        return height(root);
-    }
-
-    private void traversePreorder(Node<T> node, IVisitor visitor) {
+    private void traversePreorder(Node node, IVisitor visitor) {
         if (node == null) {
             return;
         }
@@ -338,7 +363,7 @@ public class BinarySearchTree<T extends Comparable> {
         traversePreorder(root, visitor);
     }
 
-    private void traverseInorder(Node<T> node, IVisitor visitor) {
+    private void traverseInorder(Node node, IVisitor visitor) {
         if (node == null) {
             return;
         }
@@ -352,7 +377,7 @@ public class BinarySearchTree<T extends Comparable> {
         traverseInorder(root, visitor);
     }
 
-    private void traversePostorder(Node<T> node, IVisitor visitor) {
+    private void traversePostorder(Node node, IVisitor visitor) {
         if (node == null) {
             return;
         }
@@ -362,14 +387,14 @@ public class BinarySearchTree<T extends Comparable> {
         visitor.visit(node.value);
     }
 
-    public List<Node<T>> flatten() {
-        Stack<Node<T>> stack = new Stack<>();
-        List<Node<T>> result = new LinkedList<>();
+    public List<Node> flatten() {
+        Stack<Node> stack = new Stack<>();
+        List<Node> result = new LinkedList<>();
 
         stack.push(root);
 
         while (!stack.isEmpty()) {
-            Node<T> node = stack.pop();
+            Node node = stack.pop();
 
             result.add(node);
 
@@ -385,7 +410,7 @@ public class BinarySearchTree<T extends Comparable> {
         return result;
     }
 
-    private void splitToLevels(Node<T> node, List<List<T>> levels, int level) {
+    private void splitToLevels(Node node, List<List<T>> levels, int level) {
         if (node == null) {
             return;
         }
@@ -420,12 +445,12 @@ public class BinarySearchTree<T extends Comparable> {
     }
 
     public static void main(String[] args) {
-        BinarySearchTree<Integer> bst = new BinarySearchTree<>();
+        AVLTree<Integer> avl = new AVLTree<>();
 
         Scanner scanner = null;
 
         try {
-            scanner = new Scanner(new File("bst.in"));
+            scanner = new Scanner(new File("avl.in"));
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -436,30 +461,37 @@ public class BinarySearchTree<T extends Comparable> {
         String toDelete = scanner.nextLine();
         String toFind = scanner.nextLine();
 
-        for (String number: toInsert.split(" ")) {
-            // insert
-            bst.insert(Integer.parseInt(number));
+        if (!toInsert.isEmpty()) {
+            for (String number : toInsert.split(" ")) {
+                // insert
+                avl.insert(Integer.parseInt(number));
+            }
         }
 
-        for (String number: toDelete.split(" ")) {
-            // delete
-            bst.delete(Integer.parseInt(number));
+        if (!toDelete.isEmpty()) {
+            for (String number: toDelete.split(" ")) {
+                // delete
+                avl.delete(Integer.parseInt(number));
+            }
         }
 
-        for (String number: toFind.split(" ")) {
-            // find
-            BinarySearchTree<Integer>.Node<Integer> node = bst.find(Integer.parseInt(number));
-            BinarySearchTree<Integer>.Node<Integer> right = node == null ? null : node.getRight();
+        if (!toFind.isEmpty()) {
+            for (String number : toFind.split(" ")) {
+                // find
+                AVLTree<Integer>.Node node = avl.find(Integer.parseInt(number));
+                AVLTree<Integer>.Node right = node == null ? null : node.getRight();
 
-            if (right == null) {
-                sj.add("null");
-            } else {
-                sj.add(String.valueOf(right.getValue()));
+                if (right == null) {
+                    sj.add("null");
+                } else {
+                    sj.add(String.valueOf(right.getValue()));
+                }
             }
         }
 
         try {
-            File file = new File("bst.out");
+            File file = new File("avl.out");
+            file.delete();
             FileWriter fileWriter = new FileWriter(file);
 
             fileWriter.write(sj.toString());
