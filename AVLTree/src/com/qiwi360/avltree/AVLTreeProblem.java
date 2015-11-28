@@ -9,7 +9,7 @@ import java.util.*;
 /**
  * Created by Max on 13.10.2015.
  */
-public class AVLTree<T extends Comparable> {
+public class AVLTreeProblem<T extends Comparable> {
     private final class Node implements Comparable<T> {
         private T value;
         private int height;
@@ -141,6 +141,10 @@ public class AVLTree<T extends Comparable> {
         return null;
     }
 
+    public Node findParentNode(T value) {
+        return findParentNode(root, value);
+    }
+
     private Node findMin(Node node) {
         if (node == null) {
             return null;
@@ -151,6 +155,14 @@ public class AVLTree<T extends Comparable> {
         }
 
         return findMin(node.left);
+    }
+
+    public Node findMin() {
+        return findMin(root);
+    }
+
+    public Node findMax() {
+        return findMax(root);
     }
 
     private Node findMax(Node node) {
@@ -446,13 +458,36 @@ public class AVLTree<T extends Comparable> {
         traversePostorder(root, visitor);
     }
 
+    public static class MyPoint implements Comparable<MyPoint> {
+        int x, y;
+
+        public MyPoint(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        public int distance() {
+            return (int) Math.sqrt(x * x + y * y);
+        }
+
+        @Override
+        public int compareTo(MyPoint o) {
+            return distance() - o.distance();
+        }
+    }
+
+    public static int distance(int x, int y) {
+        return (int) Math.sqrt(x * x + y * y);
+    }
+
     public static void main(String[] args) {
-        AVLTree<Integer> avl = new AVLTree<>();
+        AVLTreeProblem<Integer> avl = new AVLTreeProblem<>();
+        final int pushFrequency = 60_000;
 
         Scanner scanner = null;
 
         try {
-            scanner = new Scanner(new File("avl.in"));
+            scanner = new Scanner(new File("data.in"));
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -460,39 +495,52 @@ public class AVLTree<T extends Comparable> {
         StringJoiner sj = new StringJoiner(" ");
 
         String toInsert = scanner.nextLine();
-        String toDelete = scanner.nextLine();
-        String toFind = scanner.nextLine();
 
         if (!toInsert.isEmpty()) {
-            for (String number : toInsert.split(" ")) {
-                // insert
-                avl.insert(Integer.parseInt(number));
-            }
-        }
+            String[] splittedString = toInsert.split(" ");
 
-        if (!toDelete.isEmpty()) {
-            for (String number: toDelete.split(" ")) {
-                // delete
-                avl.delete(Integer.parseInt(number));
-            }
-        }
+            for (int i = 0; i < splittedString.length;) {
+                int x = Integer.parseInt(splittedString[i++]);
+                int y = Integer.parseInt(splittedString[i++]);
+                int distance = distance(x, y);
 
-        if (!toFind.isEmpty()) {
-            for (String number : toFind.split(" ")) {
-                // find
-                AVLTree<Integer>.Node node = avl.find(Integer.parseInt(number));
-                AVLTree<Integer>.Node right = node == null ? null : node.getRight();
+                avl.insert(distance);
 
-                if (right == null) {
-                    sj.add("null");
-                } else {
-                    sj.add(String.valueOf(right.getValue()));
+                if (i != 0 && ((i / 2) % pushFrequency == 0) || (i >= splittedString.length - 1)) {
+                    AVLTreeProblem<Integer>.Node nodeMin = avl.findMin();
+                    AVLTreeProblem<Integer>.Node nodeMax = avl.findMax();
+
+                    sj.add(String.valueOf(nodeMin.getValue()));
+                    sj.add(String.valueOf(nodeMax.getValue()));
+
+                    if (i >= splittedString.length - 1) {
+                        AVLTreeProblem<Integer>.Node lastPoint = avl.find(distance);
+                        AVLTreeProblem<Integer>.Node lastPointParent = avl.findParentNode(distance);
+                        AVLTreeProblem<Integer>.Node lastPointRight = lastPoint.right;
+                        AVLTreeProblem<Integer>.Node lastPointLeft = lastPoint.left;
+
+                        int closest = Integer.MAX_VALUE;
+
+                        if (lastPointParent != null && lastPointParent.value < closest) {
+                            closest = lastPointParent.value;
+                        }
+
+                        if (lastPointLeft != null && lastPointLeft.value < closest) {
+                            closest = lastPointLeft.value;
+                        }
+
+                        if (lastPointRight != null && lastPointRight.value < closest) {
+                            closest = lastPointRight.value;
+                        }
+
+                        sj.add(String.valueOf(closest));
+                    }
                 }
             }
         }
 
         try {
-            File file = new File("avl.out");
+            File file = new File("data.out");
             file.delete();
             FileWriter fileWriter = new FileWriter(file);
 
